@@ -1,18 +1,4 @@
 <%-
-  cmd = "source /etc/profile.d/hpc_software.sh; ls $HPC_SOFTWARE/schrodinger/"
-  begin
-    output, status = Open3.capture2e(cmd)
-    if status.success?
-      schrodinger_versions = output.split("\n").map(&:strip).reject(&:blank?).reverse
-    else
-      raise output
-    end
-  rescue => e
-    schrodinger_versions = []
-    error = e.message.strip
-  end
--%>
-<%-
   cmd = "sinfo -o %G | cut -d':' -f2 | grep -v null |grep -v GRES"
   begin
     output, status = Open3.capture2e(cmd)
