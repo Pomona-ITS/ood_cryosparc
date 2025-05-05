@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+# Clean the environment
+module purge
+
+# Set working directory to home directory
+cd "${HOME}"
+
+#xfce
+source "<%= session.staged_root.join("desktops", "#{context.desktop}.sh") %>" 
+#
+# Start program
+#
+
+rm -f /tmp/cryosparc-supervisor-* >/dev/null
+cd "<%= context.cryosparc_location %>"
+#https://docs.ycrc.yale.edu/clusters-at-yale/guides/cryosparc/
+master_host=$(hostname)
+sed -i.bak 's/export CRYOSPARC_MASTER_HOSTNAME.*$/export CRYOSPARC_MASTER_HOSTNAME=\"'"$master_host"'\"/g' "<%= context.cryosparc_location %>"/config.sh
+cryosparcm="<%= context.cryosparc_location %>/bin/cryosparcm"
+cryosparcw="<%= context.cryosparc_location %>/../cryosparc_worker/bin/cryosparcw"
+$cryosparcm start
+
+#attempt to remove old worker
+$cryosparcm cli "remove_scheduler_target_node('localhost')"
+
+#add worker node
+port_number=$( $cryosparcm env | grep CRYOSPARC_BASE_PORT | cut -d'=' -f2 | cut -d '"' -f1 )
+$cryosparcw connect --worker localhost --master localhost --port $port_number --ssdpath /scratch/$USER/$SLURM_JOB_ID --cpus $SLURM_CPUS_PER_TASK
+
+# #for debug environment
+# $cryosparcm env
+"<%= context.pom_browser %>" http://localhost:$port_number
+# ./bin/cryosparcm cli "get_scheduler_targets()"
+$cryosparcm cli "remove_scheduler_target_node('localhost')"
+$cryosparcm stop
